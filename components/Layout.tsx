@@ -9,15 +9,12 @@ interface LayoutProps {
   setLang: (lang: Language) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onLogout: () => void;
+  userName?: string;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, lang, setLang, activeTab, setActiveTab }) => {
+const Layout: React.FC<LayoutProps> = ({ children, lang, setLang, activeTab, setActiveTab, onLogout, userName }) => {
   const t = TRANSLATIONS[lang];
-
-  const handleLogout = () => {
-    localStorage.removeItem('app_session');
-    window.location.reload();
-  };
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
@@ -48,14 +45,14 @@ const Layout: React.FC<LayoutProps> = ({ children, lang, setLang, activeTab, set
         </nav>
         <div className="p-4 border-t border-emerald-800">
           <button 
-            onClick={handleLogout}
-            className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-red-300 hover:bg-red-900/30 transition-colors"
+            onClick={onLogout}
+            className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-300 hover:bg-red-900/30 transition-colors"
           >
             <span>🚪</span>
             <span className="font-medium">{t.logout}</span>
           </button>
         </div>
-        <div className="p-4 text-xs text-emerald-400 text-center">
+        <div className="p-4 text-[10px] text-emerald-400 text-center">
           &copy; 2024 Amar Shikkhaloy
         </div>
       </aside>
@@ -67,14 +64,14 @@ const Layout: React.FC<LayoutProps> = ({ children, lang, setLang, activeTab, set
              <h1 className="font-bold text-emerald-900">{t.schoolName}</h1>
           </div>
           <div className="flex items-center space-x-4 ml-auto">
-            <div className="flex bg-slate-100 p-1 rounded-lg">
+            <div className="flex bg-slate-100 p-1 rounded-lg mr-2">
               <button
                 onClick={() => setLang('en')}
                 className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                   lang === 'en' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                English
+                EN
               </button>
               <button
                 onClick={() => setLang('bn')}
@@ -85,13 +82,19 @@ const Layout: React.FC<LayoutProps> = ({ children, lang, setLang, activeTab, set
                 বাংলা
               </button>
             </div>
-            <div className="h-8 w-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-              U
+            <div className="flex items-center space-x-2">
+              <div className="hidden sm:block text-right">
+                <p className="text-xs font-bold text-slate-800 leading-none">{userName || 'User'}</p>
+                <p className="text-[10px] text-slate-400 uppercase tracking-tighter">Admin</p>
+              </div>
+              <div className="h-9 w-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold border border-emerald-200 shadow-sm">
+                {(userName || 'U').charAt(0).toUpperCase()}
+              </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6 md:p-8">
+        <main className="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-50">
           {children}
         </main>
       </div>

@@ -31,30 +31,84 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    // Check if user is already logged in
-    const savedUser = localStorage.getItem('app_session');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    
-    fetchStudents();
-    setLoading(false);
+    // 1. Check for existing Supabase session
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // Try to fetch profile for more details
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        setUser({
+          id: session.user.id,
+          name: profile?.name || 'User',
+          mobile: profile?.mobile || '',
+          email: session.user.email
+        });
+        fetchStudents();
+      }
+      setLoading(false);
+    };
+
+    checkUser();
+
+    // 2. Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setStudents([]);
+      } else if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          setUser({
+            id: session.user.id,
+            name: profile?.name || 'User',
+            mobile: profile?.mobile || '',
+            email: session.user.email
+          });
+          fetchStudents();
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogin = (userData: User) => {
     setUser(userData);
-    localStorage.setItem('app_session', JSON.stringify(userData));
+    fetchStudents();
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('app_session');
+  const handleLogout = async () => {
+    setLoading(true);
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      localStorage.removeItem('app_session');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-slate-50">
+      <div className="h-screen flex items-center justify-center bg-slate-50 flex-col space-y-4">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-600"></div>
+        <p className="text-emerald-700 font-medium animate-pulse">
+          {lang === 'bn' ? 'অপেক্ষা করুন...' : 'Loading...'}
+        </p>
       </div>
     );
   }
@@ -69,8 +123,10 @@ const App: React.FC = () => {
       setLang={setLang} 
       activeTab={activeTab} 
       setActiveTab={setActiveTab}
+      onLogout={handleLogout}
+      userName={user.name}
     >
-      <div className="animate-in fade-in duration-500">
+      <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
         {activeTab === 'dashboard' && (
           <Dashboard students={students} t={t} />
         )}
@@ -85,10 +141,10 @@ const App: React.FC = () => {
         )}
 
         {(activeTab === 'attendance' || activeTab === 'results') && (
-          <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-            <span className="text-4xl mb-4">🚧</span>
-            <p className="text-lg font-medium">{lang === 'bn' ? 'নির্মাণাধীন...' : 'Module Under Construction'}</p>
-            <p className="text-sm">{lang === 'bn' ? 'পরবর্তী আপডেটে এটি যুক্ত করা হবে।' : 'Coming soon in the next update.'}</p>
+          <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400 bg-white rounded-2xl border border-dashed border-slate-300">
+            <span className="text-5xl mb-4">🏗️</span>
+            <p className="text-lg font-bold text-slate-600">{lang === 'bn' ? 'মডিউলটি তৈরি করা হচ্ছে' : 'Module Under Construction'}</p>
+            <p className="text-sm mt-1">{lang === 'bn' ? 'খুব শীঘ্রই এটি আপডেট করা হবে।' : 'Coming soon in the next update.'}</p>
           </div>
         )}
       </div>
@@ -96,7 +152,8 @@ const App: React.FC = () => {
       <div className="fixed bottom-6 right-6 md:hidden">
          <button 
            onClick={handleLogout}
-           className="bg-red-500 text-white p-3 rounded-full shadow-lg"
+           title={t.logout}
+           className="bg-red-500 hover:bg-red-600 text-white p-4 rounded-full shadow-2xl transform active:scale-90 transition-all"
          >
            🚪
          </button>
