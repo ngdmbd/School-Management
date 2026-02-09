@@ -16,13 +16,16 @@ const Auth: React.FC<AuthProps> = ({ lang, setLang, onLogin }) => {
     name: '',
     mobile: '',
     email: '',
-    identifier: '', // Can be email or mobile for login
+    identifier: '', // Email or Mobile
     password: ''
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const t = TRANSLATIONS[lang];
+
+  // Simple check to see if string is an email
+  const isEmail = (str: string) => /\S+@\S+\.\S+/.test(str);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,57 +40,91 @@ const Auth: React.FC<AuthProps> = ({ lang, setLang, onLogin }) => {
           return;
         }
 
-        // Search for user with either mobile OR email matching the identifier
-        const { data, error: dbError } = await supabase
-          .from('app_users')
-          .select('*')
-          .or(`mobile.eq."${formData.identifier}",email.eq."${formData.identifier}"`)
-          .eq('password', formData.password)
-          .maybeSingle();
+        let loginEmail = formData.identifier;
 
-        if (dbError || !data) {
-          setError(lang === 'bn' ? 'ভুল মোবাইল/ইমেইল বা পাসওয়ার্ড' : 'Invalid identifier or password');
-        } else {
-          onLogin({ id: data.id, name: data.name, mobile: data.mobile, email: data.email });
+        // If identifier is a mobile number, lookup the associated email first
+        if (!isEmail(formData.identifier)) {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('mobile', formData.identifier)
+            .maybeSingle();
+
+          if (profileError || !profile) {
+            setError(lang === 'bn' ? 'এই মোবাইল নম্বরটি নিবন্ধিত নয়' : 'Mobile number not found');
+            setIsLoading(false);
+            return;
+          }
+          loginEmail = profile.email;
+        }
+
+        // Supabase Auth Login
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: loginEmail,
+          password: formData.password,
+        });
+
+        if (authError) {
+          setError(lang === 'bn' ? 'ভুল তথ্য বা পাসওয়ার্ড' : authError.message);
+        } else if (authData.user) {
+          // Fetch full profile info
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authData.user.id)
+            .single();
+
+          onLogin({ 
+            id: authData.user.id, 
+            name: profile?.name || 'User', 
+            mobile: profile?.mobile || '', 
+            email: authData.user.email 
+          });
         }
       } else {
+        // Registration Logic
         if (!formData.name || !formData.mobile || !formData.email || !formData.password) {
           setError(lang === 'bn' ? 'সবগুলো ঘর পূরণ করুন' : 'Please fill all fields');
           setIsLoading(false);
           return;
         }
 
-        // Check if mobile or email already exists
-        const { data: existingUser } = await supabase
-          .from('app_users')
-          .select('id')
-          .or(`mobile.eq."${formData.mobile}",email.eq."${formData.email}"`)
-          .maybeSingle();
+        // 1. Supabase Auth Sign Up
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+        });
 
-        if (existingUser) {
-          setError(lang === 'bn' ? 'এই নম্বর বা ইমেইল দিয়ে ইতিমধ্যে অ্যাকাউন্ট আছে' : 'Account already exists with this mobile or email');
-          setIsLoading(false);
-          return;
+        if (signUpError) throw signUpError;
+
+        if (authData.user) {
+          // 2. Insert into profiles table to store mobile and name
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([{ 
+              id: authData.user.id,
+              name: formData.name, 
+              mobile: formData.mobile, 
+              email: formData.email
+            }]);
+
+          if (profileError) {
+            console.error('Profile Creation Error:', profileError);
+            // If profile fails, user is still in Auth, but we show error
+            setError(lang === 'bn' ? 'প্রোফাইল তৈরি করা সম্ভব হয়নি' : 'Failed to create profile record');
+          } else {
+            onLogin({ 
+              id: authData.user.id, 
+              name: formData.name, 
+              mobile: formData.mobile, 
+              email: formData.email 
+            });
+          }
         }
-
-        const { data, error: insertError } = await supabase
-          .from('app_users')
-          .insert([{ 
-            name: formData.name, 
-            mobile: formData.mobile, 
-            email: formData.email,
-            password: formData.password 
-          }])
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-
-        onLogin({ id: data.id, name: data.name, mobile: data.mobile, email: data.email });
       }
     } catch (err: any) {
-      console.error('Auth Error:', err);
-      setError(lang === 'bn' ? 'সার্ভারে সমস্যা হয়েছে' : 'Server error occurred');
+      console.error('Auth Full Error:', err);
+      setError(lang === 'bn' ? (err.message || 'সার্ভারে সমস্যা হয়েছে') : err.message);
     } finally {
       setIsLoading(false);
     }
@@ -95,6 +132,12 @@ const Auth: React.FC<AuthProps> = ({ lang, setLang, onLogin }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+      <style>{`
+        input:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 30px white inset !important;
+            -webkit-text-fill-color: #0f172a !important;
+        }
+      `}</style>
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
         <div className="p-8">
           <div className="flex justify-between items-center mb-8">
@@ -105,12 +148,16 @@ const Auth: React.FC<AuthProps> = ({ lang, setLang, onLogin }) => {
             </div>
           </div>
 
-          <div className="mb-8">
+          <div className="mb-6">
             <h2 className="text-xl font-bold text-slate-800">{isLoginView ? t.welcomeBack : t.createNewAccount}</h2>
-            <p className="text-slate-500 text-sm mt-1">{isLoginView ? (lang === 'bn' ? 'প্রবেশ করুন' : 'Access account') : (lang === 'bn' ? 'নিবন্ধন করুন' : 'Sign up')}</p>
+            <p className="text-slate-500 text-sm mt-1">{isLoginView ? (lang === 'bn' ? 'সিস্টেমে প্রবেশ করুন' : 'Login to your account') : (lang === 'bn' ? 'নতুন অ্যাকাউন্ট খুলুন' : 'Join our system')}</p>
           </div>
 
-          {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 text-red-600 text-xs rounded-lg border border-red-200">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {isLoginView ? (
@@ -118,46 +165,74 @@ const Auth: React.FC<AuthProps> = ({ lang, setLang, onLogin }) => {
                 <label className="block text-sm font-medium text-slate-700 mb-1">{t.emailOrMobile}</label>
                 <input 
                   type="text" 
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all" 
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all bg-white text-slate-900" 
                   value={formData.identifier} 
                   onChange={(e) => setFormData({...formData, identifier: e.target.value})} 
-                  placeholder={lang === 'bn' ? 'ইমেইল অথবা মোবাইল নম্বর' : 'Email or Mobile Number'}
+                  placeholder="email@example.com / 017..."
                 />
               </div>
             ) : (
               <>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">{t.fullName}</label>
-                  <input type="text" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
+                  <input 
+                    type="text" 
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none bg-white text-slate-900" 
+                    value={formData.name} 
+                    onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">{t.email}</label>
-                  <input type="email" placeholder="example@mail.com" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                  <input 
+                    type="email" 
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none bg-white text-slate-900" 
+                    value={formData.email} 
+                    onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">{t.mobileNumber}</label>
-                  <input type="tel" placeholder="017XXXXXXXX" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none" value={formData.mobile} onChange={(e) => setFormData({...formData, mobile: e.target.value})} />
+                  <input 
+                    type="tel" 
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none bg-white text-slate-900" 
+                    value={formData.mobile} 
+                    onChange={(e) => setFormData({...formData, mobile: e.target.value})} 
+                  />
                 </div>
               </>
             )}
             
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">{t.password}</label>
-              <input type="password" placeholder="••••••••" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
+              <input 
+                type="password" 
+                placeholder="••••••••" 
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all bg-white text-slate-900" 
+                value={formData.password} 
+                onChange={(e) => setFormData({...formData, password: e.target.value})} 
+              />
             </div>
 
-            <button type="submit" disabled={isLoading} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg transition-all disabled:opacity-50 transform active:scale-[0.98]">
+            <button 
+              type="submit" 
+              disabled={isLoading} 
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg transition-all disabled:opacity-50 transform active:scale-[0.98]"
+            >
               {isLoading ? (
                 <div className="flex items-center justify-center">
                   <div className="w-5 h-5 border-t-2 border-white rounded-full animate-spin mr-2"></div>
-                  {lang === 'bn' ? 'অপেক্ষা করুন...' : 'Please wait...'}
+                  {lang === 'bn' ? 'অপেক্ষা করুন...' : 'Processing...'}
                 </div>
               ) : (isLoginView ? t.login : t.register)}
             </button>
           </form>
 
-          <div className="mt-8 text-center">
-            <button onClick={() => { setIsLoginView(!isLoginView); setError(''); }} className="text-emerald-700 font-semibold text-sm hover:underline">
+          <div className="mt-8 text-center border-t border-slate-100 pt-6">
+            <button 
+              onClick={() => { setIsLoginView(!isLoginView); setError(''); }} 
+              className="text-emerald-700 font-semibold text-sm hover:text-emerald-800"
+            >
               {isLoginView ? t.noAccount : t.haveAccount}
             </button>
           </div>
