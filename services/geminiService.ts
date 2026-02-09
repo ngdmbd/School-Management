@@ -2,9 +2,11 @@
 import { GoogleGenAI } from "@google/genai";
 import { Student } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-
 export const getStudentPerformanceInsight = async (student: Student, language: 'en' | 'bn') => {
+  // Creating a new instance right before the call as required by coding guidelines.
+  // This also prevents a ReferenceError if 'process' is not defined at the top level of the file.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+
   const prompt = language === 'bn' 
     ? `নিচে দেওয়া শিক্ষার্থী তথ্যের উপর ভিত্তি করে একটি সংক্ষিপ্ত এবং উৎসাহমূলক কর্মক্ষমতা রিপোর্ট তৈরি করুন:
        নাম: ${student.name}, রোল: ${student.roll}, ক্লাস: ${student.class}, গ্রেড: ${student.grade}, উপস্থিতি: ${student.attendance}%। 

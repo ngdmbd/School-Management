@@ -11,19 +11,25 @@
       body {
         font-family: 'Inter', 'Hind Siliguri', sans-serif;
       }
+      #root {
+        min-height: 100vh;
+      }
     </style>
-  <script type="importmap">
+    <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "@google/genai": "https://esm.sh/@google/genai@1.40.0",
+    "recharts": "https://esm.sh/recharts@2.15.0?external=react,react-dom",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.40.0",
-    "recharts": "https://esm.sh/recharts@^3.7.0"
+    "react/": "https://esm.sh/react@^19.2.4/"
   }
 }
 </script>
-</head>
+    <script type="module" src="index.tsx"></script>
+  </head>
   <body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
   </body>
