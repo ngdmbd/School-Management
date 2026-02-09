@@ -1,0 +1,7 @@
+{
+  "name": "Amar School - Student Management System",
+  "description": "A comprehensive student management system tailored for Bangladeshi schools and madrasas, featuring bilingual support (English & Bangla) and AI-powered student performance insights.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
