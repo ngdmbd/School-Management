@@ -14,6 +14,11 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, lang, setLang, activeTab, setActiveTab }) => {
   const t = TRANSLATIONS[lang];
 
+  const handleLogout = () => {
+    localStorage.removeItem('app_session');
+    window.location.reload();
+  };
+
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Sidebar */}
@@ -41,7 +46,16 @@ const Layout: React.FC<LayoutProps> = ({ children, lang, setLang, activeTab, set
             </button>
           ))}
         </nav>
-        <div className="p-4 border-t border-emerald-800 text-xs text-emerald-400 text-center">
+        <div className="p-4 border-t border-emerald-800">
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-red-300 hover:bg-red-900/30 transition-colors"
+          >
+            <span>🚪</span>
+            <span className="font-medium">{t.logout}</span>
+          </button>
+        </div>
+        <div className="p-4 text-xs text-emerald-400 text-center">
           &copy; 2024 Amar Shikkhaloy
         </div>
       </aside>
@@ -72,7 +86,7 @@ const Layout: React.FC<LayoutProps> = ({ children, lang, setLang, activeTab, set
               </button>
             </div>
             <div className="h-8 w-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-              A
+              U
             </div>
           </div>
         </header>

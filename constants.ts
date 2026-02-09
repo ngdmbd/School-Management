@@ -30,6 +30,18 @@ export const TRANSLATIONS: Record<'en' | 'bn', Translation> = {
     institutionType: "Institution Type",
     grade: "Grade",
     contact: "Contact",
+    login: "Login",
+    register: "Register",
+    fullName: "Full Name",
+    mobileNumber: "Mobile Number",
+    email: "Email",
+    emailOrMobile: "Email or Mobile Number",
+    password: "Password",
+    logout: "Logout",
+    noAccount: "Don't have an account? Register",
+    haveAccount: "Already have an account? Login",
+    welcomeBack: "Welcome Back",
+    createNewAccount: "Create New Account",
   },
   bn: {
     dashboard: "ড্যাশবোর্ড",
@@ -59,15 +71,22 @@ export const TRANSLATIONS: Record<'en' | 'bn', Translation> = {
     institutionType: "প্রতিষ্ঠানের ধরন",
     grade: "গ্রেড",
     contact: "যোগাযোগ",
+    login: "লগইন",
+    register: "রেজিস্ট্রেশন",
+    fullName: "পূর্ণ নাম",
+    mobileNumber: "মোবাইল নম্বর",
+    email: "ইমেইল",
+    emailOrMobile: "ইমেইল অথবা মোবাইল নম্বর",
+    password: "পাসওয়ার্ড",
+    logout: "লগ আউট",
+    noAccount: "অ্যাকাউন্ট নেই? রেজিস্ট্রেশন করুন",
+    haveAccount: "অ্যাকাউন্ট আছে? লগইন করুন",
+    welcomeBack: "স্বাগতম",
+    createNewAccount: "নতুন অ্যাকাউন্ট তৈরি করুন",
   }
 };
 
-export const MOCK_STUDENTS: Student[] = [
-  { id: '1', name: 'Rakibul Islam', roll: '01', class: '10', section: 'A', gender: 'Male', institutionType: 'school', grade: 'A+', attendance: 95, contact: '01712345678' },
-  { id: '2', name: 'Ayesha Khatun', roll: '02', class: '10', section: 'A', gender: 'Female', institutionType: 'school', grade: 'A', attendance: 88, contact: '01812345678' },
-  { id: '3', name: 'Mohammad Abdullah', roll: '05', class: 'Alim 1st Year', section: 'B', gender: 'Male', institutionType: 'madrasa', grade: 'A-', attendance: 70, contact: '01912345678' },
-  { id: '4', name: 'Sumaiya Akter', roll: '12', class: 'Dakhil 9', section: 'C', gender: 'Female', institutionType: 'madrasa', grade: 'B', attendance: 82, contact: '01612345678' },
-];
+export const MOCK_STUDENTS: Student[] = [];
 
 export const CLASSES_SCHOOL = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 export const CLASSES_MADRASA = ['Ibtidai 1', 'Ibtidai 5', 'Dakhil 6', 'Dakhil 10', 'Alim 1st Year', 'Alim 2nd Year', 'Fazil', 'Kamil'];
