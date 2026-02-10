@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Amar School - Student Management</title>
+    <title>Nagarganj Dakhil Madrasha - Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -13,6 +13,20 @@
       }
       #root {
         min-height: 100vh;
+      }
+      input, select, textarea {
+        background-color: white !important;
+        color: #1e293b !important; /* slate-800 */
+      }
+      input::placeholder {
+        color: #94a3b8 !important; /* slate-400 */
+      }
+      /* Fix for autofill making inputs dark */
+      input:-webkit-autofill,
+      input:-webkit-autofill:hover, 
+      input:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0px 1000px white inset !important;
+        -webkit-text-fill-color: #1e293b !important;
       }
     </style>
     <script type="importmap">

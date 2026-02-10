@@ -1,6 +1,6 @@
 {
-  "name": "Amar School - Student Management System",
-  "description": "A comprehensive student management system tailored for Bangladeshi schools and madrasas, featuring bilingual support (English & Bangla) and AI-powered student performance insights.",
+  "name": "Nagarganj Dakhil Madrasha - Management System",
+  "description": "A comprehensive student management system tailored for Nagarganj Dakhil Madrasha, featuring bilingual support and AI-powered insights.",
   "requestFramePermissions": [
     "camera"
   ]

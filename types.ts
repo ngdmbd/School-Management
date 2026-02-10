@@ -29,7 +29,6 @@ export interface Translation {
   institutionType: string;
   grade: string;
   contact: string;
-  // Auth translations
   login: string;
   register: string;
   fullName: string;
@@ -48,15 +47,22 @@ export type InstitutionType = 'school' | 'madrasa';
 
 export interface Student {
   id: string;
-  name: string;
+  name_en: string;
+  name_bn: string;
   roll: string;
   class: string;
   section: string;
   gender: 'Male' | 'Female' | 'Other';
-  institutionType: InstitutionType;
-  grade: string;
-  attendance: number; // percentage
+  dob: string;
+  birth_id: string;
+  father_name_en: string;
+  father_name_bn: string;
+  father_id: string;
+  mother_name_en: string;
+  address_bn: string;
   contact: string;
+  grade: string;
+  attendance: number;
 }
 
 export interface User {
@@ -64,11 +70,4 @@ export interface User {
   name: string;
   mobile: string;
   email?: string;
-}
-
-export interface AppState {
-  language: Language;
-  students: Student[];
-  institutionType: InstitutionType;
-  user: User | null;
 }

@@ -18,49 +18,22 @@ const App: React.FC = () => {
   const t = TRANSLATIONS[lang];
 
   const fetchStudents = async () => {
-    const { data, error } = await supabase
-      .from('students')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error('Error fetching students:', error);
-    } else {
-      setStudents(data || []);
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (!error) setStudents(data || []);
+    } catch (e) {
+      console.error('Error fetching students:', e);
     }
   };
 
   useEffect(() => {
-    // 1. Check for existing Supabase session
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        // Try to fetch profile for more details
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        setUser({
-          id: session.user.id,
-          name: profile?.name || 'User',
-          mobile: profile?.mobile || '',
-          email: session.user.email
-        });
-        fetchStudents();
-      }
-      setLoading(false);
-    };
-
-    checkUser();
-
-    // 2. Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setStudents([]);
-      } else if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           const { data: profile } = await supabase
             .from('profiles')
@@ -70,18 +43,45 @@ const App: React.FC = () => {
 
           setUser({
             id: session.user.id,
-            name: profile?.name || 'User',
+            name: profile?.name || 'Admin',
             mobile: profile?.mobile || '',
             email: session.user.email
           });
           fetchStudents();
         }
+      } catch (err) {
+        console.error('Init Auth Error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setStudents([]);
+        setLoading(false);
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        setUser({
+          id: session.user.id,
+          name: profile?.name || 'Admin',
+          mobile: profile?.mobile || '',
+          email: session.user.email
+        });
+        fetchStudents();
+        setLoading(false);
       }
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogin = (userData: User) => {
@@ -90,24 +90,22 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    setLoading(true);
     try {
       await supabase.auth.signOut();
       setUser(null);
-      localStorage.removeItem('app_session');
     } catch (error) {
       console.error('Logout error:', error);
-    } finally {
-      setLoading(false);
+      // Fallback in case signOut fails
+      setUser(null);
     }
   };
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-slate-50 flex-col space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-600"></div>
-        <p className="text-emerald-700 font-medium animate-pulse">
-          {lang === 'bn' ? 'অপেক্ষা করুন...' : 'Loading...'}
+      <div className="h-screen flex items-center justify-center bg-emerald-50 flex-col space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-emerald-600 border-opacity-20 border-t-emerald-600"></div>
+        <p className="text-emerald-800 font-bold animate-pulse text-lg">
+          {lang === 'bn' ? 'লোড হচ্ছে...' : 'Loading Nagarganj Madrasha...'}
         </p>
       </div>
     );
@@ -126,11 +124,8 @@ const App: React.FC = () => {
       onLogout={handleLogout}
       userName={user.name}
     >
-      <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-        {activeTab === 'dashboard' && (
-          <Dashboard students={students} t={t} />
-        )}
-        
+      <div className="animate-in fade-in duration-700">
+        {activeTab === 'dashboard' && <Dashboard students={students} t={t} />}
         {activeTab === 'students' && (
           <StudentManagement 
             students={students} 
@@ -139,24 +134,13 @@ const App: React.FC = () => {
             lang={lang} 
           />
         )}
-
         {(activeTab === 'attendance' || activeTab === 'results') && (
-          <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400 bg-white rounded-2xl border border-dashed border-slate-300">
-            <span className="text-5xl mb-4">🏗️</span>
-            <p className="text-lg font-bold text-slate-600">{lang === 'bn' ? 'মডিউলটি তৈরি করা হচ্ছে' : 'Module Under Construction'}</p>
-            <p className="text-sm mt-1">{lang === 'bn' ? 'খুব শীঘ্রই এটি আপডেট করা হবে।' : 'Coming soon in the next update.'}</p>
+          <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400 bg-white rounded-3xl border border-dashed border-emerald-200">
+            <span className="text-6xl mb-4">🕌</span>
+            <p className="text-xl font-bold text-emerald-900">{lang === 'bn' ? 'মডিউলটি প্রক্রিয়াধীন' : 'Module Under Development'}</p>
+            <p className="text-sm mt-2">{lang === 'bn' ? 'খুব শীঘ্রই এই ফিচারটি যুক্ত করা হবে।' : 'This feature will be available soon.'}</p>
           </div>
         )}
-      </div>
-
-      <div className="fixed bottom-6 right-6 md:hidden">
-         <button 
-           onClick={handleLogout}
-           title={t.logout}
-           className="bg-red-500 hover:bg-red-600 text-white p-4 rounded-full shadow-2xl transform active:scale-90 transition-all"
-         >
-           🚪
-         </button>
       </div>
     </Layout>
   );
